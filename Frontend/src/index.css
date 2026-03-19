@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  background: #050c19;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top, rgba(29, 78, 216, 0.08), transparent 28%),
+    linear-gradient(180deg, #07101f 0%, #081224 42%, #050c19 100%);
+  color: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100vh;
+}
