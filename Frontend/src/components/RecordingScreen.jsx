@@ -5,10 +5,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import speechService from '../services/speechService';
 import audioService  from '../services/audioService';
+import geminiService from '../services/geminiService';
 import { quickKeywordCheck } from '../utils/scamDetector';
 
 export default function RecordingScreen({ onRecordingComplete, onCancel }) {
-  // ── State ──────────────────────────────────────────────────────────────────
   const [finalTranscript,   setFinalTranscript]   = useState('');
   const [interimTranscript, setInterimTranscript]  = useState('');
   const [detectedKeywords,  setDetectedKeywords]   = useState([]);
@@ -17,13 +17,14 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
   const [error,             setError]              = useState(null);
   const [lang,              setLang]               = useState('hi-IN');
   const [isRecording,       setIsRecording]        = useState(false);
+  const [aiRisk,            setAiRisk]             = useState(null);
+  const [aiAnalyzing,       setAiAnalyzing]        = useState(false);
 
-  // ── Refs ───────────────────────────────────────────────────────────────────
-  const timerRef       = useRef(null);
-  const transcriptRef  = useRef('');  // non-stale ref for use in callbacks
+  const timerRef        = useRef(null);
+  const transcriptRef   = useRef('');
   const audioMetricsRef = useRef(null);
+  const aiDebounceRef   = useRef(null);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
@@ -32,7 +33,6 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
 
   const highlightKeywords = (text, keywords) => {
     if (!keywords.length) return text;
-    // Sort by length desc so longer phrases match first
     const sorted = [...keywords].sort((a, b) => b.length - a.length);
     let highlighted = text;
     sorted.forEach(kw => {
@@ -45,21 +45,32 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
     return highlighted;
   };
 
-  // ── Start Recording ────────────────────────────────────────────────────────
+  const runAiAnalysis = useCallback((text) => {
+    if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
+    aiDebounceRef.current = setTimeout(async () => {
+      if (!text || text.trim().length < 20) return;
+      setAiAnalyzing(true);
+      const result = await geminiService.analyzeTranscript(text);
+      setAiAnalyzing(false);
+      if (result) setAiRisk(result);
+    }, 3000);
+  }, []);
+
   const startRecording = useCallback(async () => {
     setError(null);
     setFinalTranscript('');
     setInterimTranscript('');
     setDetectedKeywords([]);
     setElapsedTime(0);
+    setAiRisk(null);
     transcriptRef.current = '';
+    geminiService.reset();
 
     if (!speechService.isSupported()) {
       setError('Web Speech API not supported. Please use Chrome browser.');
       return;
     }
 
-    // Configure speech service callbacks
     speechService.setLanguage(lang);
     speechService.configure({
       onTranscriptUpdate: (interim, final) => {
@@ -67,10 +78,11 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
         setFinalTranscript(final);
         setInterimTranscript(interim);
 
-        // Real-time keyword detection
         const fullText = final + ' ' + interim;
         const keywords = quickKeywordCheck(fullText);
         setDetectedKeywords(keywords);
+
+        runAiAnalysis(fullText.trim());
       },
       onError: (msg) => {
         setError(msg);
@@ -97,31 +109,31 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
     timerRef.current = setInterval(() => {
       setElapsedTime(prev => prev + 1);
     }, 1000);
-  }, [lang]);
+  }, [lang, runAiAnalysis]);
 
-  // ── Stop Recording ─────────────────────────────────────────────────────────
   const stopRecording = useCallback(() => {
     clearInterval(timerRef.current);
+    if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
     setIsRecording(false);
 
     const finalText  = speechService.stop();
     const metrics    = audioService.stop();
     audioMetricsRef.current = metrics;
 
-    // Navigate to analysis screen with results
     onRecordingComplete({
       transcript:   finalText || transcriptRef.current,
       audioMetrics: metrics,
       duration:     elapsedTime,
       language:     lang,
+      aiRisk,
     });
-  }, [elapsedTime, lang, onRecordingComplete]);
+  }, [elapsedTime, lang, onRecordingComplete, aiRisk]);
 
-  // ── Auto-start on mount ────────────────────────────────────────────────────
   useEffect(() => {
     startRecording();
     return () => {
       clearInterval(timerRef.current);
+      if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
       if (isRecording) {
         speechService.stop();
         audioService.stop();
@@ -129,7 +141,6 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
     };
   }, []); // eslint-disable-line
 
-  // ── Mic Visualizer Bars ────────────────────────────────────────────────────
   const BAR_COUNT = 20;
   const bars = Array.from({ length: BAR_COUNT }, (_, i) => {
     const offset = Math.sin((i / BAR_COUNT) * Math.PI) * volume;
@@ -137,26 +148,28 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
     return Math.max(6, Math.min(64, height));
   });
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const aiRiskColor =
+    aiRisk && aiRisk.riskScore >= 70 ? '#ef4444' :
+    aiRisk && aiRisk.riskScore >= 40 ? '#f59e0b' :
+    '#22c55e';
+
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
 
-      {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
         <button
           onClick={() => { speechService.stop(); audioService.stop(); onCancel(); }}
           className="text-gray-400 hover:text-white text-sm px-3 py-1 rounded border border-gray-700"
         >
-          ← Cancel
+          Cancel
         </button>
 
-        {/* Language Toggle */}
         <div className="flex rounded overflow-hidden border border-gray-700 text-sm">
           <button
             onClick={() => { speechService.setLanguage('hi-IN'); setLang('hi-IN'); }}
             className={`px-3 py-1 ${lang === 'hi-IN' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
           >
-            हिंदी
+            Hindi
           </button>
           <button
             onClick={() => { speechService.setLanguage('en-IN'); setLang('en-IN'); }}
@@ -166,14 +179,12 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
           </button>
         </div>
 
-        {/* Timer */}
         <div className="font-mono text-red-400 text-lg font-bold">
           {isRecording && <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />}
           {formatTime(elapsedTime)}
         </div>
       </div>
 
-      {/* ── Mic Visualizer ── */}
       <div className="flex items-center justify-center h-24 bg-gray-900 border-b border-gray-800 gap-1 px-4">
         {bars.map((h, i) => (
           <div
@@ -189,20 +200,70 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
         ))}
       </div>
 
-      {/* ── Status Label ── */}
       <div className="text-center py-2 text-sm">
         {isRecording ? (
-          <span className="text-red-400 font-semibold">● Recording... Speak near phone</span>
+          <span className="text-red-400 font-semibold">Recording... Speak near phone</span>
         ) : (
           <span className="text-gray-500">Initializing microphone...</span>
         )}
       </div>
 
-      {/* ── Detected Keywords Alert ── */}
+      {aiRisk && (
+        <div
+          className="mx-4 mb-3 rounded-xl p-4 border-2"
+          style={{
+            backgroundColor: aiRiskColor + '18',
+            borderColor: aiRiskColor,
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: aiRiskColor }}>
+              AI Scam Risk Assessment
+            </span>
+            <span
+              className="text-2xl font-black"
+              style={{ color: aiRiskColor }}
+            >
+              {aiRisk.riskScore}/100
+            </span>
+          </div>
+          <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${aiRisk.riskScore}%`, backgroundColor: aiRiskColor }}
+            />
+          </div>
+          {aiRisk.reason && (
+            <p className="text-sm" style={{ color: aiRiskColor }}>
+              {aiRisk.reason}
+            </p>
+          )}
+          {aiRisk.sensitiveInfoRequested && (
+            <p className="text-xs text-red-300 mt-1">
+              Sensitive info requested: {aiRisk.sensitiveInfoRequested}
+            </p>
+          )}
+          {aiRisk.riskScore >= 40 && (
+            <div className="mt-2 bg-black bg-opacity-30 rounded-lg p-2">
+              <p className="text-xs font-semibold" style={{ color: aiRiskColor }}>
+                DISCLAIMER: This call shows signs of a potential scam. Do not share any personal or financial information. Hang up immediately if you feel unsafe.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {aiAnalyzing && (
+        <div className="mx-4 mb-2 flex items-center gap-2 text-xs text-gray-500">
+          <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          AI analyzing conversation...
+        </div>
+      )}
+
       {detectedKeywords.length > 0 && (
         <div className="mx-4 mb-3 bg-red-950 border border-red-500 rounded-xl p-3">
           <p className="text-red-400 text-xs font-bold uppercase tracking-wider mb-2">
-            ⚠ Scam Keywords Detected ({detectedKeywords.length})
+            Scam Keywords Detected ({detectedKeywords.length})
           </p>
           <div className="flex flex-wrap gap-2">
             {detectedKeywords.map((kw, i) => (
@@ -217,26 +278,22 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
         </div>
       )}
 
-      {/* ── Live Transcript ── */}
       <div className="flex-1 mx-4 mb-4 bg-gray-900 rounded-xl border border-gray-800 overflow-y-auto p-4">
         <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Live Transcript</p>
 
         {finalTranscript || interimTranscript ? (
           <div className="text-base leading-relaxed">
-            {/* Final transcript with keyword highlights */}
             <span
               dangerouslySetInnerHTML={{
                 __html: highlightKeywords(finalTranscript, detectedKeywords),
               }}
             />
-            {/* Interim (still being processed) in muted color */}
             {interimTranscript && (
               <span className="text-gray-400 italic"> {interimTranscript}</span>
             )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-32 text-gray-600">
-            <div className="text-4xl mb-2">🎤</div>
             <p className="text-sm">
               {lang === 'hi-IN'
                 ? 'Baat karna shuru karein...'
@@ -246,14 +303,12 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
         )}
       </div>
 
-      {/* ── Error ── */}
       {error && (
         <div className="mx-4 mb-3 bg-red-950 border border-red-500 rounded-xl p-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
-      {/* ── Stop Button ── */}
       <div className="px-4 pb-8 pt-2">
         <button
           onClick={stopRecording}
@@ -263,7 +318,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
                      disabled:bg-gray-700 disabled:text-gray-500
                      transition-all duration-150 shadow-lg"
         >
-          ⏹ Stop & Analyze
+          Stop and Analyze
         </button>
         <p className="text-center text-xs text-gray-600 mt-2">
           Minimum 10 seconds recommended for accurate detection
