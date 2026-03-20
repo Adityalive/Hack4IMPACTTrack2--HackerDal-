@@ -1,75 +1,44 @@
-// ─── App.jsx ──────────────────────────────────────────────────────────────────
-// Main router — manages which screen is active + passes state between screens
-// Screens: home → recording → analysis → (pdf / map / education)
-// ──────────────────────────────────────────────────────────────────────────────
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HomeScreen      from './components/HomeScreen';
 import RecordingScreen from './components/RecordingScreen';
 import AnalysisScreen  from './components/AnalysisScreen';
+import DeepfakeDetector from './components/DeepfakeDetector';
 import HelpMap         from './components/HelpMap';
 import EducationPage   from './components/EducationPage';
+import LoginModal      from './components/LoginModal';
+import { getCurrentUser, logout } from './api/authService';
 
-// ── Screen names ───────────────────────────────────────────────────────────────
-const SCREENS = {
-  HOME:      'home',
-  RECORDING: 'recording',
-  ANALYSIS:  'analysis',
-  MAP:       'map',
-  EDUCATION: 'education',
-};
+const SCREENS = { HOME:'home', RECORDING:'recording', ANALYSIS:'analysis', DEEPFAKE:'deepfake', MAP:'map', EDUCATION:'education' };
 
 export default function App() {
-  const [screen,       setScreen]      = useState(SCREENS.HOME);
-  const [callResult,   setCallResult]  = useState(null);  // from RecordingScreen
-  const [user,         setUser]        = useState(null);   // logged-in user (from backend)
+  const [screen,     setScreen]     = useState(SCREENS.HOME);
+  const [callResult, setCallResult] = useState(null);
+  const [user,       setUser]       = useState(null);
+  const [showLogin,  setShowLogin]  = useState(false);
+  const isWideScreen = screen === SCREENS.HOME || screen === SCREENS.ANALYSIS || screen === SCREENS.DEEPFAKE;
 
-  // ── Handler: recording complete → go to analysis ──────────────────────────
-  const handleRecordingComplete = (result) => {
-    setCallResult(result);
-    setScreen(SCREENS.ANALYSIS);
-  };
+  useEffect(() => {
+    const savedUser = getCurrentUser();
+    if (savedUser) setUser(savedUser);
+  }, []);
 
-  // ── Render active screen ──────────────────────────────────────────────────
+  const handleRecordingComplete = (result) => { setCallResult(result); setScreen(SCREENS.ANALYSIS); };
+  const handleLoginSuccess = (userData)     => { setUser(userData); setShowLogin(false); };
+  const handleLogout = ()                   => { logout(); setUser(null); };
+
   return (
-    <div className={screen === SCREENS.HOME ? 'min-h-screen font-sans' : 'max-w-md mx-auto min-h-screen font-sans'}>
-      {screen === SCREENS.HOME && (
-        <HomeScreen
-          user={user}
-          onStartRecording={() => setScreen(SCREENS.RECORDING)}
-          onShowEducation={() => setScreen(SCREENS.EDUCATION)}
-          onShowMap={() => setScreen(SCREENS.MAP)}
-          onLoginClick={() => alert('Login coming soon!')}
-        />
+    <div className={`mx-auto min-h-screen font-sans ${isWideScreen ? 'max-w-none' : 'max-w-md'}`}>
+      {showLogin && (
+        <div className="fixed inset-0 z-50">
+          <LoginModal onSuccess={handleLoginSuccess} onClose={() => setShowLogin(false)} />
+        </div>
       )}
-
-      {screen === SCREENS.RECORDING && (
-        <RecordingScreen
-          onRecordingComplete={handleRecordingComplete}
-          onCancel={() => setScreen(SCREENS.HOME)}
-        />
-      )}
-
-      {screen === SCREENS.ANALYSIS && callResult && (
-        <AnalysisScreen
-          callResult={callResult}
-          user={user}
-          onGoHome={() => setScreen(SCREENS.HOME)}
-          onShowMap={() => setScreen(SCREENS.MAP)}
-        />
-      )}
-
-      {screen === SCREENS.MAP && (
-        <HelpMap
-          onBack={() => setScreen(SCREENS.ANALYSIS)}
-        />
-      )}
-
-      {screen === SCREENS.EDUCATION && (
-        <EducationPage
-          onBack={() => setScreen(SCREENS.HOME)}
-        />
-      )}
+      {screen === SCREENS.HOME      && <HomeScreen user={user} onStartRecording={() => setScreen(SCREENS.RECORDING)} onShowDeepfake={() => setScreen(SCREENS.DEEPFAKE)} onLoginClick={() => setShowLogin(true)} onLogout={handleLogout} onShowEducation={() => setScreen(SCREENS.EDUCATION)} onShowMap={() => setScreen(SCREENS.MAP)} />}
+      {screen === SCREENS.RECORDING && <RecordingScreen onRecordingComplete={handleRecordingComplete} onCancel={() => setScreen(SCREENS.HOME)} />}
+      {screen === SCREENS.ANALYSIS  && callResult && <AnalysisScreen callResult={callResult} user={user} onGoHome={() => setScreen(SCREENS.HOME)} onShowMap={() => setScreen(SCREENS.MAP)} />}
+      {screen === SCREENS.DEEPFAKE  && <DeepfakeDetector onBack={() => setScreen(SCREENS.HOME)} />}
+      {screen === SCREENS.MAP       && <HelpMap onBack={() => setScreen(SCREENS.ANALYSIS)} />}
+      {screen === SCREENS.EDUCATION && <EducationPage onBack={() => setScreen(SCREENS.HOME)} />}
     </div>
   );
 }

@@ -1,5 +1,3 @@
-// ─── HomeScreen.jsx ───────────────────────────────────────────────────────────
-
 const quickSteps = [
   {
     number: '01',
@@ -116,29 +114,31 @@ function CapabilityCard({ card }) {
 
 export default function HomeScreen({
   onStartRecording,
+  onShowDeepfake,
   onShowEducation,
   onShowMap,
   user,
   onLoginClick,
+  onLogout,
 }) {
   return (
     <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.18),_transparent_32%),linear-gradient(180deg,_#07101f_0%,_#081224_42%,_#050c19_100%)] text-white">
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-        <header className="sticky top-0 z-20 mb-10 border border-white/6 bg-slate-950/75 backdrop-blur-xl rounded-[22px] px-4 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <header className="sticky top-0 z-20 mb-8 rounded-[22px] border border-white/8 bg-slate-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.35)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-2xl font-black tracking-tight text-rose-300">VoiceGuard</div>
                 <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">Real-Time Protection Engine</p>
               </div>
               {user ? (
-                <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 lg:hidden">
+                <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 xl:hidden">
                   {user.name}
                 </div>
               ) : (
                 <button
                   onClick={onLoginClick}
-                  className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white lg:hidden"
+                  className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white xl:hidden"
                 >
                   Login
                 </button>
@@ -153,17 +153,28 @@ export default function HomeScreen({
               <button onClick={onShowMap} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
                 Nearest Help
               </button>
+              <button onClick={onShowDeepfake} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
+                Deepfake Detector
+              </button>
             </nav>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {user ? (
-                <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200 lg:block">
-                  {user.name}
-                </div>
+                <>
+                  <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200 xl:block">
+                    {user.name}
+                  </div>
+                  <button
+                    onClick={onLogout}
+                    className="rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
+                  >
+                    Logout
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={onLoginClick}
-                  className="hidden rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white lg:block"
+                  className="hidden rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white xl:block"
                 >
                   Login
                 </button>
@@ -202,6 +213,18 @@ export default function HomeScreen({
                 Protect Now (Record Call)
               </button>
               <ScrollButton targetId="how-it-works">How it works</ScrollButton>
+              <button
+                onClick={onShowMap}
+                className="rounded-2xl border border-emerald-300/18 bg-emerald-300/10 px-5 py-3 text-sm font-semibold text-emerald-100 transition hover:border-emerald-200/30 hover:bg-emerald-300/16"
+              >
+                Find Help Nearby
+              </button>
+              <button
+                onClick={onShowDeepfake}
+                className="rounded-2xl border border-cyan-300/18 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/30 hover:bg-cyan-300/16"
+              >
+                Deepfake Voice Check
+              </button>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3 text-xs uppercase tracking-[0.28em] text-slate-400">
@@ -218,8 +241,8 @@ export default function HomeScreen({
                 <div className="absolute right-6 top-5 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
                 <div className="absolute left-[-40px] top-20 h-72 w-72 rounded-full bg-slate-900/15 blur-3xl" />
 
-                <div className="mx-auto flex min-h-[460px] max-w-[320px] items-end justify-center">
-                  <div className="relative h-[380px] w-[240px]">
+                <div className="mx-auto flex min-h-[360px] max-w-[320px] items-end justify-center sm:min-h-[420px]">
+                  <div className="relative h-[300px] w-[200px] sm:h-[360px] sm:w-[230px]">
                     <div className="absolute bottom-0 left-1/2 h-[170px] w-[200px] -translate-x-1/2 rounded-t-[48px] bg-[linear-gradient(180deg,_#3a3a40_0%,_#1b2232_100%)]" />
                     <div className="absolute bottom-[132px] left-1/2 h-[118px] w-[124px] -translate-x-1/2 rounded-[36px] bg-[linear-gradient(180deg,_#f1ede4_0%,_#dad0c2_100%)]" />
                     <div className="absolute bottom-[218px] left-1/2 h-[84px] w-[84px] -translate-x-1/2 rounded-full bg-[linear-gradient(180deg,_#d2c9bc_0%,_#b4a596_100%)]" />
@@ -235,9 +258,14 @@ export default function HomeScreen({
                 </div>
 
                 <div className="absolute inset-x-4 bottom-4 rounded-[22px] border border-white/10 bg-slate-900/88 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.35)] backdrop-blur">
-                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-300">
-                    <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                    AI Scanning Active
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-300">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                      AI Scanning Active
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[10px] text-slate-200">
+                      Avg scan: 15s
+                    </span>
                   </div>
                   <div className="mt-4 flex h-10 items-end gap-1">
                     {[26, 52, 18, 64, 32, 72, 28, 54].map((height, index) => (
@@ -262,7 +290,7 @@ export default function HomeScreen({
             </p>
           </div>
 
-          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {quickSteps.map((step) => (
               <article
                 key={step.number}
@@ -289,14 +317,14 @@ export default function HomeScreen({
             </div>
           </div>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-4">
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {capabilityCards.map((card) => (
               <CapabilityCard key={card.title} card={card} />
             ))}
           </div>
         </section>
 
-        <section className="grid gap-8 py-24 lg:grid-cols-[1fr_360px] lg:items-end">
+        <section className="grid gap-8 py-20 lg:grid-cols-[1fr_360px] lg:items-end">
           <div>
             <h2 className="text-4xl font-black tracking-tight text-slate-100">AI In Action</h2>
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-rose-300/15 bg-rose-300/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-rose-200">
@@ -309,7 +337,7 @@ export default function HomeScreen({
 
             <div className="mt-8 rounded-[28px] border border-rose-300/12 bg-slate-900/85 p-5 shadow-[0_20px_60px_rgba(2,6,23,0.26)]">
               <p className="rounded-[18px] border border-white/6 bg-slate-950/50 px-4 py-4 text-sm italic text-slate-200">
-                "Aapka account block ho jayega, abhi ye OTP batayiye..."
+                &quot;Aapka account block ho jayega, abhi ye OTP batayiye...&quot;
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">
                 <span>Transaction: Account Block Warning</span>
@@ -347,7 +375,7 @@ export default function HomeScreen({
                 onClick={onStartRecording}
                 className="mt-4 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
-                Cut Call Now
+                Start Scan
               </button>
             </div>
           </div>
