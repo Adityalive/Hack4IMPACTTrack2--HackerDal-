@@ -274,6 +274,11 @@ function AudioFingerprint({ breakdown }) {
   );
 }
 
+function formatCallerNumber(value = '') {
+  const cleaned = String(value || '').trim();
+  return cleaned || '+91 9832-XXX-XXX';
+}
+
 export default function AnalysisScreen({ callResult, user, onGoHome, onShowMap }) {
   const [analysis, setAnalysis] = useState(null);
   const [scoreDisplay, setScoreDisplay] = useState(0);
@@ -365,6 +370,8 @@ export default function AnalysisScreen({ callResult, user, onGoHome, onShowMap }
   const alertCopy = analysis.hindiWarning || analysis.toneReasoning || 'This result is advisory only. Continue with caution and verify independently.';
   const displayTags = [...analysis.toneFlags, ...analysis.matchedKeywords.slice(0, 2).map((item) => item.phrase)].slice(0, 4);
   const threatLevel = analysis.score >= 70 ? 'High' : analysis.score >= 40 ? 'Moderate' : 'Low';
+  const callerNumber = formatCallerNumber(callResult.callerNumber);
+  const sharedReportCount = callResult?.callerStats?.totalReports || 0;
 
   return (
     <div className="min-h-screen bg-[#0a1227] text-white">
@@ -443,11 +450,16 @@ export default function AnalysisScreen({ callResult, user, onGoHome, onShowMap }
                       Live Scanning Active
                     </div>
                     <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-100 sm:text-5xl">
-                      CALL ID: +91 9832-XXX-XXX
+                      CALL ID: {callerNumber}
                     </h1>
                     <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">
                       {analysis.toneReasoning || 'Monitoring high-pressure speech patterns, financial coercion, and voice anomalies in real time.'}
                     </p>
+                    <div className="mt-4 inline-flex rounded-full border border-rose-300/14 bg-rose-300/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-rose-200">
+                      {sharedReportCount > 0
+                        ? `Shared DB: ${sharedReportCount} users flagged this number`
+                        : 'Shared DB: no prior flags found yet'}
+                    </div>
                   </div>
                   <MonitoringWave />
                 </div>

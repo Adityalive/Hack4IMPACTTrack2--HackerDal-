@@ -15,7 +15,11 @@ export default function App() {
   const [callResult, setCallResult] = useState(null);
   const [user,       setUser]       = useState(null);
   const [showLogin,  setShowLogin]  = useState(false);
-  const isWideScreen = screen === SCREENS.HOME || screen === SCREENS.ANALYSIS || screen === SCREENS.DEEPFAKE;
+  const isWideScreen =
+    screen === SCREENS.HOME ||
+    screen === SCREENS.RECORDING ||
+    screen === SCREENS.ANALYSIS ||
+    screen === SCREENS.DEEPFAKE;
 
   useEffect(() => {
     const savedUser = getCurrentUser();

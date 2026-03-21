@@ -6,6 +6,7 @@ import analyzeRoute from './routes/analyze.js';
 import authRoute    from './routes/auth.js';
 import deepfakeRoute from './routes/deepfake.js';
 import historyRoute from './routes/history.js';
+import numberRoute from './routes/numbers.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/api/analyze', analyzeRoute);
 app.use('/api/auth',    authRoute);
 app.use('/api/deepfake', deepfakeRoute);
 app.use('/api/history', historyRoute);
+app.use('/api/numbers', numberRoute);
 
 // ── 404 handler ────────────────────────────────────────────────────
 app.use((req, res) => {

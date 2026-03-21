@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { lookupCallerNumber, reportCallerNumber } from '../api/numberService';
+
 const quickSteps = [
   {
     number: '01',
@@ -112,6 +115,82 @@ function CapabilityCard({ card }) {
   );
 }
 
+function NumberToast({
+  mode,
+  phoneInput,
+  setPhoneInput,
+  loading,
+  result,
+  error,
+  onClose,
+  onCheck,
+  onReport,
+}) {
+  const title = mode === 'report' ? 'Report Scam Number' : 'Check Number';
+  const actionLabel = mode === 'report' ? 'Report Scam' : 'Check Number';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0f172a] p-6 shadow-[0_30px_90px_rgba(2,6,23,0.5)]">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-2xl font-black text-slate-100">{title}</div>
+            <p className="mt-1 text-sm text-slate-400">Enter a 10-digit caller number to check or report it in the shared database.</p>
+          </div>
+          <button onClick={onClose} className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-400 transition hover:text-white">
+            Close
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <label className="block">
+            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Caller Number</span>
+            <input
+              type="text"
+              value={phoneInput}
+              onChange={(event) => setPhoneInput(event.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="9876543210"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-emerald-300/40"
+            />
+          </label>
+        </div>
+
+        {(result || error) && (
+          <div className={`mt-5 rounded-[22px] border px-4 py-4 ${error ? 'border-rose-400/20 bg-rose-500/10 text-rose-200' : 'border-emerald-300/16 bg-emerald-500/10 text-emerald-100'}`}>
+            <div className="text-sm leading-7">
+              {error || result?.message}
+            </div>
+            {result && !error && (
+              <div className="mt-3 text-xs font-bold uppercase tracking-[0.2em]">
+                Total reports: {result.totalReports} | Analysis flags: {result.analysisCount} | Manual reports: {result.manualReportCount}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={mode === 'report' ? onReport : onCheck}
+            disabled={loading || phoneInput.length !== 10}
+            className="flex-1 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-slate-950 transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? 'Please wait...' : actionLabel}
+          </button>
+          {mode === 'report' && (
+            <button
+              onClick={onCheck}
+              disabled={loading || phoneInput.length !== 10}
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Check First
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomeScreen({
   onStartRecording,
   onShowDeepfake,
@@ -121,8 +200,70 @@ export default function HomeScreen({
   onLoginClick,
   onLogout,
 }) {
+  const [toastMode, setToastMode] = useState(null);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [toastResult, setToastResult] = useState(null);
+  const [toastError, setToastError] = useState('');
+  const [toastLoading, setToastLoading] = useState(false);
+
+  const openToast = (mode) => {
+    setToastMode(mode);
+    setPhoneInput('');
+    setToastResult(null);
+    setToastError('');
+    setToastLoading(false);
+  };
+
+  const closeToast = () => {
+    setToastMode(null);
+    setToastResult(null);
+    setToastError('');
+    setToastLoading(false);
+  };
+
+  const handleCheckNumber = async () => {
+    setToastLoading(true);
+    setToastError('');
+    try {
+      const data = await lookupCallerNumber(phoneInput);
+      setToastResult(data);
+    } catch (err) {
+      setToastError(err.message);
+      setToastResult(null);
+    } finally {
+      setToastLoading(false);
+    }
+  };
+
+  const handleReportNumber = async () => {
+    setToastLoading(true);
+    setToastError('');
+    try {
+      const data = await reportCallerNumber(phoneInput);
+      setToastResult(data);
+    } catch (err) {
+      setToastError(err.message);
+      setToastResult(null);
+    } finally {
+      setToastLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.18),_transparent_32%),linear-gradient(180deg,_#07101f_0%,_#081224_42%,_#050c19_100%)] text-white">
+      {toastMode && (
+        <NumberToast
+          mode={toastMode}
+          phoneInput={phoneInput}
+          setPhoneInput={setPhoneInput}
+          loading={toastLoading}
+          result={toastResult}
+          error={toastError}
+          onClose={closeToast}
+          onCheck={handleCheckNumber}
+          onReport={handleReportNumber}
+        />
+      )}
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8">
         <header className="sticky top-0 z-20 mb-8 rounded-[22px] border border-white/8 bg-slate-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.35)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -156,6 +297,9 @@ export default function HomeScreen({
               <button onClick={onShowDeepfake} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
                 Deepfake Detector
               </button>
+              <button onClick={() => openToast('check')} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
+                Check No
+              </button>
             </nav>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -180,12 +324,12 @@ export default function HomeScreen({
                 </button>
               )}
 
-              <a
-                href="tel:1930"
+              <button
+                onClick={() => openToast('report')}
                 className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-rose-400"
               >
                 Report Scam
-              </a>
+              </button>
             </div>
           </div>
         </header>
@@ -417,7 +561,7 @@ export default function HomeScreen({
               <div className="mt-4 flex flex-col gap-3">
                 <button onClick={onShowEducation} className="text-left transition hover:text-white">Educational Module</button>
                 <button onClick={onShowMap} className="text-left transition hover:text-white">Help Center</button>
-                <a href="tel:1930" className="transition hover:text-white">Report a Scam</a>
+                <button onClick={() => openToast('report')} className="text-left transition hover:text-white">Report a Scam</button>
               </div>
             </div>
 

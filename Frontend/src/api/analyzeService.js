@@ -20,6 +20,7 @@ export async function analyzeAudio({
   duration   = 0,
   audioScore = 0,
   transcript = '',
+  callerNumber = '',
 }) {
   const token = localStorage.getItem('vg_token');
 
@@ -29,6 +30,7 @@ export async function analyzeAudio({
   formData.append('duration',   String(duration));
   formData.append('audioScore', String(audioScore));
   formData.append('transcript', transcript); // frontend STT as hint
+  formData.append('callerNumber', callerNumber);
 
   const headers = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;

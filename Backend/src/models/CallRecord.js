@@ -9,6 +9,7 @@ const callRecordSchema = new mongoose.Schema({
   },
 
   // Pipeline results
+  callerNumber:    { type: String, default: '' },
   transcript:      { type: String, default: '' },
   language:        { type: String, default: 'unknown' },
 
@@ -42,6 +43,7 @@ const callRecordSchema = new mongoose.Schema({
 
 // Index for fast user history queries
 callRecordSchema.index({ userId: 1, analyzedAt: -1 });
+callRecordSchema.index({ callerNumber: 1, analyzedAt: -1 });
 
 const CallRecord = mongoose.model('CallRecord', callRecordSchema);
 export default CallRecord;

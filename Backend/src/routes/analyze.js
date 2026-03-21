@@ -7,8 +7,13 @@ import { handleUpload }      from '../middleware/uploadMiddleware.js';
 import { optionalAuth }      from '../middleware/authMiddleware.js';
 import { runScamPipeline }   from '../pipeline/scamPipeline.js';
 import CallRecord            from '../models/CallRecord.js';
+import CallerNumberStat      from '../models/CallerNumberStat.js';
 
 const router = express.Router();
+
+function sanitizeCallerNumber(value = '') {
+  return String(value || '').replace(/\D/g, '').slice(0, 10);
+}
 
 // POST /api/analyze
 router.post('/', optionalAuth, handleUpload, async (req, res) => {
@@ -22,6 +27,7 @@ router.post('/', optionalAuth, handleUpload, async (req, res) => {
     }
 
     const { duration = 0, audioScore = 0 } = req.body;
+    const callerNumber = sanitizeCallerNumber(req.body.callerNumber);
 
     console.log(`Analyzing: ${req.file.originalname} (${(req.file.size / 1024).toFixed(1)} KB)`);
 
@@ -37,6 +43,7 @@ router.post('/', optionalAuth, handleUpload, async (req, res) => {
     // 3. Save to MongoDB
     const callRecord = await CallRecord.create({
       userId:          req.user?._id || null,
+      callerNumber,
       transcript:      result.transcript,
       language:        result.language,
       finalScore:      result.score,
@@ -52,10 +59,31 @@ router.post('/', optionalAuth, handleUpload, async (req, res) => {
       processingMs:    result.processingMs,
     });
 
+    let callerStats = null;
+    if (callerNumber.length === 10) {
+      const stat = await CallerNumberStat.findOneAndUpdate(
+        { callerNumber },
+        {
+          $inc: { analysisCount: 1 },
+          $set: { lastAnalyzedAt: new Date() },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ).lean();
+
+      callerStats = {
+        callerNumber,
+        analysisCount: stat.analysisCount || 0,
+        manualReportCount: stat.manualReportCount || 0,
+        totalReports: (stat.analysisCount || 0) + (stat.manualReportCount || 0),
+      };
+    }
+
     // 4. Send response to frontend
     return res.status(200).json({
       success: true,
       callId:  callRecord._id,
+      callerNumber,
+      callerStats,
       ...result,
     });
 
