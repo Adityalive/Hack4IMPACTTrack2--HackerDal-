@@ -8,6 +8,16 @@
 
 import { geminiModel } from '../config/gemini.js';
 
+// Common Hindi words used to detect language (simple heuristic)
+const HINDI_INDICATOR_WORDS = ['hai', 'ka', 'ko', 'ke', 'karo', 'main', 'aap', 'yeh', 'nahi', 'hoga'];
+const MIN_HINDI_WORDS_FOR_DETECTION = 2;
+
+function detectLang(text) {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = words.filter(w => HINDI_INDICATOR_WORDS.includes(w)).length;
+  return matches >= MIN_HINDI_WORDS_FOR_DETECTION ? 'hi-IN' : 'en-IN';
+}
+
 export async function transcribeStep(state) {
   console.log('[Step 1] Transcribing audio with Gemini...');
 
@@ -39,12 +49,8 @@ Return ONLY the raw transcript text. Nothing else.
     ]);
 
     const transcript = result.response.text().trim();
-
-    // Detect language (simple heuristic — Gemini handles both)
-    const hindiWords   = ['hai', 'ka', 'ko', 'ke', 'karo', 'main', 'aap', 'yeh', 'nahi', 'hoga'];
-    const wordList     = transcript.toLowerCase().split(' ');
-    const hindiMatches = wordList.filter(w => hindiWords.includes(w)).length;
-    const transcriptLang = hindiMatches >= 2 ? 'hi-IN' : 'en-IN';
+    const wordList   = transcript.toLowerCase().split(' ');
+    const transcriptLang = detectLang(transcript);
 
     console.log(`[Step 1] Done. Words: ${wordList.length}, Lang: ${transcriptLang}`);
 
@@ -60,14 +66,27 @@ Return ONLY the raw transcript text. Nothing else.
   } catch (err) {
     console.error('[Step 1] Transcription failed:', err.message);
 
-    // Don't crash pipeline — continue with empty transcript
+    // Use frontend STT transcript as fallback so the pipeline can still
+    // detect scam keywords even when Gemini is unavailable.
+    const fallback = (state.frontendTranscript || '').trim();
+    if (fallback) {
+      console.log('[Step 1] Using frontend STT transcript as fallback.');
+    }
+
+    const transcriptLang = fallback ? detectLang(fallback) : 'unknown';
+
+    // Don't crash pipeline — continue with fallback (or empty) transcript
     return {
       ...state,
-      transcript:     '',
-      transcriptLang: 'unknown',
+      transcript:     fallback,
+      transcriptLang,
       stepResults: {
         ...state.stepResults,
-        transcribe: { success: false, error: err.message },
+        transcribe: {
+          success:              false,
+          error:                err.message,
+          usedFrontendFallback: !!fallback,
+        },
       },
     };
   }
