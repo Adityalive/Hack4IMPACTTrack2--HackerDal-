@@ -101,11 +101,15 @@ export function analyzeCall(transcript, audioMetrics = null) {
   const { keywordScore, matchedKeywords } = analyzeKeywords(transcript);
   const { audioScore, audioFlags }        = analyzeAudio(audioMetrics);
 
-  // Weighted final score
-  const score = Math.round(
-    keywordScore * 0.50 +
-    audioScore   * 0.50   // audio split: pitch 30% + pause 20% handled inside analyzeAudio
-  );
+  // Weighted final score.
+  // When audio analysis is unavailable (audioScore = 0), use the keyword score
+  // directly so that strong keyword signals are not artificially halved.
+  const weightedScore = audioScore > 0
+    ? Math.round(keywordScore * 0.50 + audioScore * 0.50)
+    : Math.round(keywordScore);
+
+  // Never lower the score below what keywords alone indicate.
+  const score = Math.min(100, Math.max(weightedScore, Math.round(keywordScore)));
 
   // Determine risk level
   let riskLevel = RISK_LEVELS.SAFE;
