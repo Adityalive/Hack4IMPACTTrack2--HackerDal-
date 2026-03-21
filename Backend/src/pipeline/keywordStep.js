@@ -6,7 +6,10 @@
 // Output state: { ...input, matchedKeywords, keywordScore }
 // ─────────────────────────────────────────────────────────────────
 
-import { SCAM_KEYWORDS, MAX_RAW_SCORE } from '../utils/scamKeywords.js';
+import { SCAM_KEYWORDS, MAX_RAW_SCORE, CRITICAL_PHRASES } from '../utils/scamKeywords.js';
+
+// Phrases that indicate explicit requests for sensitive information.
+// Even a single match must result in at least a SUSPICIOUS score (40).
 
 export function keywordStep(state) {
   console.log('[Step 2] Running keyword detection...');
@@ -39,7 +42,16 @@ export function keywordStep(state) {
   }
 
   // Normalize raw score to 0-100
-  const keywordScore = Math.min(100, Math.round((rawScore / MAX_RAW_SCORE) * 100));
+  let keywordScore = Math.min(100, Math.round((rawScore / MAX_RAW_SCORE) * 100));
+
+  // If any critical phrase (OTP, bank details, money transfer, etc.) was detected,
+  // ensure the score is at least SUSPICIOUS (40) — these are never "Safe".
+  const hasCriticalPhrase = matchedKeywords.some(k =>
+    CRITICAL_PHRASES.has(k.phrase.toLowerCase())
+  );
+  if (hasCriticalPhrase && keywordScore < 40) {
+    keywordScore = 40;
+  }
 
   console.log(`[Step 2] Done. Matched: ${matchedKeywords.length}, Score: ${keywordScore}`);
 

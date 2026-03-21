@@ -2,6 +2,7 @@
 // Fix: Smart weighting when toneScore = 0
 
 import { getRiskLevel } from '../utils/scoreCalculator.js';
+import { CRITICAL_PHRASES } from '../utils/scamKeywords.js';
 
 export function scoreStep(state) {
   console.log('[Step 4] Calculating final score...');
@@ -9,25 +10,55 @@ export function scoreStep(state) {
   const keywordScore = state.keywordScore || 0;
   const toneScore    = state.toneScore    || 0;
   const audioScore   = state.audioScore   || 0;
+  // isScam flag from Gemini — if AI explicitly says it's a scam, enforce a minimum score
+  const isScam       = state.isScam === true;
 
-  let finalScore;
+  let weightedScore;
 
   if (toneScore > 0) {
     // Normal: keyword 50% + tone 30% + audio 20%
-    finalScore = Math.round(
+    weightedScore = Math.round(
       keywordScore * 0.50 +
       toneScore    * 0.30 +
       audioScore   * 0.20
     );
   } else if (audioScore > 0) {
     // No tone: keyword 70% + audio 30%
-    finalScore = Math.round(
+    weightedScore = Math.round(
       keywordScore * 0.70 +
       audioScore   * 0.30
     );
   } else {
-    // Only keywords — use directly (cap 85)
-    finalScore = Math.min(85, Math.round(keywordScore));
+    // Only keywords — use directly
+    weightedScore = Math.round(keywordScore);
+  }
+
+  // Never let tone/audio analysis drag the score below the keyword baseline.
+  // Keywords are deterministic — if they fire, the risk is real regardless of
+  // what the AI tone analysis returns.
+  let finalScore = Math.max(keywordScore, weightedScore);
+
+  // If Gemini explicitly flagged this call as a scam, ensure the score reaches
+  // at least the DANGER threshold (70) so the user always gets a strong warning.
+  if (isScam && finalScore < 70) {
+    finalScore = 70;
+  }
+
+  // Critical safety rule: if any sensitive information was requested
+  // (OTP, bank details, account number, PIN, money transfer, etc.),
+  // the result must never be "Safe" — always at least SUSPICIOUS.
+  // If TWO or more such phrases appear together, force DANGER (70) because
+  // a combination like "share your OTP" + "bank account details" is a
+  // clear-cut scam, never a legitimate request.
+  const criticalMatches = (state.matchedKeywords || []).filter(k =>
+    CRITICAL_PHRASES.has(k.phrase.toLowerCase())
+  );
+  const hasCriticalKeyword = criticalMatches.length > 0;
+  if (hasCriticalKeyword && finalScore < 40) {
+    finalScore = 40;
+  }
+  if (criticalMatches.length >= 2 && finalScore < 70) {
+    finalScore = 70;
   }
 
   finalScore = Math.min(100, Math.max(0, finalScore));
@@ -36,8 +67,8 @@ export function scoreStep(state) {
   const hindiWarning = finalScore >= 70
     ? 'Yeh call FAKE hai! Paisa mat bhejo, OTP mat do!'
     : finalScore >= 40
-    ? 'Yeh call suspicious lag raha hai. Savdhan rahein!'
-    : 'Koi major scam indicator nahi mila. Phir bhi savdhan rahein.';
+    ? 'Yeh call suspicious lag raha hai. Savdhan rahein! OTP, bank details ya paisa kabhi share mat karo.'
+    : 'Koi major indicator nahi mila. Phir bhi savdhan rahein — OTP, bank details ya password kabhi share mat karo.';
 
   console.log(`[Step 4] keyword:${keywordScore} tone:${toneScore} audio:${audioScore} → final:${finalScore} (${riskLevel.label})`);
 
