@@ -1,17 +1,7 @@
-import { generatePDF as generateReportPDF } from '../components/ReportPDF';
-
 export function generateReportPdf(payload = {}) {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Missing PDF payload.');
-  }
-
-  if (!payload.analysis) {
-    throw new Error('Missing analysis data for PDF export.');
-  }
-
-  return generateReportPDF(payload);
+  return payload && payload.transcript
 }
 
 export async function generatePDF(payload = {}) {
-  return generateReportPdf(payload);
+  return generateReportPdf(payload)
 }

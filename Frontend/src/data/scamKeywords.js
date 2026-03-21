@@ -10,12 +10,8 @@ export const SCAM_KEYWORDS = [
   { phrase: 'otp share',            weight: 15, category: 'otp' },
   { phrase: 'otp send karo',        weight: 15, category: 'otp' },
   { phrase: 'otp dalo',             weight: 15, category: 'otp' },
-  { phrase: 'share your otp',       weight: 18, category: 'otp' },
-  { phrase: 'tell me your otp',     weight: 18, category: 'otp' },
-  { phrase: 'give me your otp',     weight: 18, category: 'otp' },
   { phrase: 'one time password',    weight: 10, category: 'otp' },
   { phrase: 'pin number',           weight: 8,  category: 'otp' },
-  { phrase: 'your pin',             weight: 12, category: 'otp' },
   { phrase: 'pin batao',            weight: 12, category: 'otp' },
   { phrase: 'atm pin',              weight: 10, category: 'otp' },
   { phrase: 'cvv',                  weight: 10, category: 'otp' },
@@ -78,19 +74,6 @@ export const SCAM_KEYWORDS = [
   { phrase: 'aadhaar number batao', weight: 15, category: 'personal_info' },
   { phrase: 'pan card number',      weight: 12, category: 'personal_info' },
   { phrase: 'password batao',       weight: 15, category: 'personal_info' },
-  { phrase: 'bank details',         weight: 18, category: 'personal_info' },
-  { phrase: 'banking details',      weight: 18, category: 'personal_info' },
-  { phrase: 'account details',      weight: 18, category: 'personal_info' },
-  { phrase: 'bank account details', weight: 18, category: 'personal_info' },
-  { phrase: 'give me your bank account details', weight: 18, category: 'personal_info' },
-  { phrase: 'give me your bank account number',  weight: 18, category: 'personal_info' },
-  { phrase: 'card details',         weight: 15, category: 'personal_info' },
-  { phrase: 'financial details',    weight: 15, category: 'personal_info' },
-  { phrase: 'bank account number',  weight: 18, category: 'personal_info' },
-  { phrase: 'credit card',          weight: 15, category: 'personal_info' },
-  { phrase: 'debit card',           weight: 12, category: 'personal_info' },
-  { phrase: 'expiry date',          weight: 12, category: 'personal_info' },
-  { phrase: 'cvv number',           weight: 15, category: 'personal_info' },
 
   // ── Prize / Lottery scam ─────────────────────────────────────────────────────
   { phrase: 'lottery',              weight: 10, category: 'lottery' },
@@ -103,7 +86,3 @@ export const SCAM_KEYWORDS = [
 
 // Max possible weight for normalization (sum of top 3 keywords)
 export const MAX_KEYWORD_SCORE = 54; // 18 + 18 + 18
-
-// Categories that indicate high-risk sensitive information requests.
-// Any match in these categories must trigger at least a SUSPICIOUS warning.
-export const CRITICAL_CATEGORIES = ['otp', 'personal_info', 'money'];
