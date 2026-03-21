@@ -32,12 +32,17 @@ router.post('/', optionalAuth, handleUpload, async (req, res) => {
     console.log(`Analyzing: ${req.file.originalname} (${(req.file.size / 1024).toFixed(1)} KB)`);
 
     // 2. Run the scam pipeline
+    // Pass the frontend STT transcript as a fallback so that if Gemini
+    // transcription fails the pipeline still has text to analyse.
+    const frontendTranscript = String(req.body.transcript || '').trim();
+
     const result = await runScamPipeline({
-      audioBuffer: req.file.buffer,
-      mimeType:    req.file.mimetype,
-      duration:    Number(duration),
-      audioScore:  Number(audioScore),
-      userId:      req.user?._id || null,
+      audioBuffer:        req.file.buffer,
+      mimeType:           req.file.mimetype,
+      duration:           Number(duration),
+      audioScore:         Number(audioScore),
+      userId:             req.user?._id || null,
+      frontendTranscript,
     });
 
     // 3. Save to MongoDB

@@ -47,11 +47,18 @@ export function scoreStep(state) {
   // Critical safety rule: if any sensitive information was requested
   // (OTP, bank details, account number, PIN, money transfer, etc.),
   // the result must never be "Safe" — always at least SUSPICIOUS.
-  const hasCriticalKeyword = (state.matchedKeywords || []).some(k =>
+  // If TWO or more such phrases appear together, force DANGER (70) because
+  // a combination like "share your OTP" + "bank account details" is a
+  // clear-cut scam, never a legitimate request.
+  const criticalMatches = (state.matchedKeywords || []).filter(k =>
     CRITICAL_PHRASES.has(k.phrase.toLowerCase())
   );
+  const hasCriticalKeyword = criticalMatches.length > 0;
   if (hasCriticalKeyword && finalScore < 40) {
     finalScore = 40;
+  }
+  if (criticalMatches.length >= 2 && finalScore < 70) {
+    finalScore = 70;
   }
 
   finalScore = Math.min(100, Math.max(0, finalScore));

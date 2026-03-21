@@ -26,10 +26,11 @@ import { scoreStep }      from './scoreStep.js';
  */
 export async function runScamPipeline({
   audioBuffer,
-  mimeType    = 'audio/wav',
-  duration    = 0,
-  audioScore  = 0,
-  userId      = null,
+  mimeType           = 'audio/wav',
+  duration           = 0,
+  audioScore         = 0,
+  userId             = null,
+  frontendTranscript = '',
 }) {
   const startTime = Date.now();
   console.log('\n══════════════════════════════════════');
@@ -43,6 +44,7 @@ export async function runScamPipeline({
     duration,
     audioScore,
     userId,
+    frontendTranscript, // STT transcript from the browser — used as fallback
     stepResults: {},
 
     // These get filled by steps:

@@ -113,12 +113,17 @@ export function analyzeCall(transcript, audioMetrics = null) {
 
   // If any critical-category keyword is matched (OTP, bank/financial details,
   // money transfer), the call must be at least SUSPICIOUS — never "Safe".
-  // Even a single sensitive-information request is a red flag.
-  const hasCriticalKeyword = matchedKeywords.some(
+  // If TWO or more critical matches are found together (e.g. OTP + bank account
+  // details), force DANGER (70) — that combination is never legitimate.
+  const criticalMatches = matchedKeywords.filter(
     k => CRITICAL_CATEGORIES.includes(k.category)
   );
+  const hasCriticalKeyword = criticalMatches.length > 0;
   if (hasCriticalKeyword && score < 40) {
     score = 40;
+  }
+  if (criticalMatches.length >= 2 && score < 70) {
+    score = 70;
   }
 
   // Determine risk level
