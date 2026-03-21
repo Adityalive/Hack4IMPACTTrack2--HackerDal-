@@ -366,8 +366,8 @@ export default function AnalysisScreen({ callResult, user, onGoHome, onShowMap }
     { label: 'Settings', active: false },
   ];
   const riskTone = analysis.score >= 70 ? 'High Alert' : analysis.score >= 40 ? 'Elevated Risk' : 'Monitoring';
-  const alertTitle = analysis.score >= 70 ? 'Mat Suno! Paisa Mat Bhejo!' : analysis.score >= 40 ? 'Savdhan! Yeh Call Suspicious Hai!' : 'Conversation Looks Safer';
-  const alertCopy = analysis.hindiWarning || analysis.toneReasoning || 'This result is advisory only. Continue with caution and verify independently.';
+  const alertTitle = analysis.score >= 70 ? 'Mat Suno! Paisa Mat Bhejo!' : analysis.score >= 40 ? 'Savdhan! Yeh Call Suspicious Hai!' : 'Savdhan Rahein!';
+  const alertCopy = analysis.hindiWarning || analysis.toneReasoning || 'OTP, bank details, ya password kabhi bhi phone par share mat karo — chahe call safe lage. Verify karein pehle.';
   const displayTags = [...analysis.toneFlags, ...analysis.matchedKeywords.slice(0, 2).map((item) => item.phrase)].slice(0, 4);
   const threatLevel = analysis.score >= 70 ? 'High' : analysis.score >= 40 ? 'Moderate' : 'Low';
   const callerNumber = formatCallerNumber(callResult.callerNumber);

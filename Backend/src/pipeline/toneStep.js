@@ -47,7 +47,7 @@ Look for ALL of these manipulation tactics:
 - Impersonation (claiming to be from a bank, RBI, government, police, courier)
 - Authority (using official-sounding language or titles)
 - Fake rewards (lottery won, prize, scheme money)
-- Requests for sensitive info (OTP, PIN, CVV, Aadhaar, account number, password)
+- Requests for sensitive info (OTP, PIN, CVV, Aadhaar, account number, password, bank details, card details)
 - Requests to transfer money, install apps, or share screen
 - Emotional manipulation (creating panic, rushing, not allowing time to think)
 
@@ -56,7 +56,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 {
   "toneScore": <number 0-100, how likely this is a scam based on tone and content>,
   "toneFlags": <array of applicable strings from: ["urgency", "fear", "impersonation", "authority", "pressure", "fake_reward", "deepfake_indicators", "emotional_manipulation"]>,
-  "toneReasoning": <1-2 sentences explaining why this call is suspicious, in simple English>,
+  "toneReasoning": <1-2 sentences explaining why this call is suspicious or what to be cautious about, in simple English>,
   "isScam": <true or false>
 }
 
@@ -66,7 +66,9 @@ Scoring guidance:
 - toneScore 51-80: Clear manipulation tactics detected
 - toneScore 81-100: Obvious scam with multiple red flags
 - If scam keywords were already detected in the transcript, the toneScore should be at least 50
-- If the caller asks for OTP, PIN, passwords, or money transfer, isScam must be true and toneScore must be at least 75
+- If the caller asks for OTP, PIN, passwords, bank details, card details, or account number, isScam must be true and toneScore must be at least 80
+- If the caller asks for any money transfer, isScam must be true and toneScore must be at least 75
+- Even for low-risk conversations, if ANY personal or financial information is mentioned, include a safety warning in toneReasoning
 - Respond ONLY with the JSON object, no other text
 `;
 
@@ -100,8 +102,8 @@ Scoring guidance:
     const isScam        = parsed.isScam === true;
 
     // Safety net: if Gemini says isScam=true but returned a low score, enforce a minimum
-    if (isScam && toneScore < 50) {
-      toneScore = 50;
+    if (isScam && toneScore < 70) {
+      toneScore = 70;
     }
 
     // Safety net: if scam keywords were already detected and AI returned 0,

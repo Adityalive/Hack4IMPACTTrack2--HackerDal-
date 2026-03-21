@@ -2,6 +2,7 @@
 // Fix: Smart weighting when toneScore = 0
 
 import { getRiskLevel } from '../utils/scoreCalculator.js';
+import { CRITICAL_PHRASES } from '../utils/scamKeywords.js';
 
 export function scoreStep(state) {
   console.log('[Step 4] Calculating final score...');
@@ -43,14 +44,24 @@ export function scoreStep(state) {
     finalScore = 70;
   }
 
+  // Critical safety rule: if any sensitive information was requested
+  // (OTP, bank details, account number, PIN, money transfer, etc.),
+  // the result must never be "Safe" — always at least SUSPICIOUS.
+  const hasCriticalKeyword = (state.matchedKeywords || []).some(k =>
+    CRITICAL_PHRASES.has(k.phrase.toLowerCase())
+  );
+  if (hasCriticalKeyword && finalScore < 40) {
+    finalScore = 40;
+  }
+
   finalScore = Math.min(100, Math.max(0, finalScore));
   const riskLevel = getRiskLevel(finalScore);
 
   const hindiWarning = finalScore >= 70
     ? 'Yeh call FAKE hai! Paisa mat bhejo, OTP mat do!'
     : finalScore >= 40
-    ? 'Yeh call suspicious lag raha hai. Savdhan rahein!'
-    : 'Koi major scam indicator nahi mila. Phir bhi savdhan rahein.';
+    ? 'Yeh call suspicious lag raha hai. Savdhan rahein! OTP, bank details ya paisa kabhi share mat karo.'
+    : 'Koi major indicator nahi mila. Phir bhi savdhan rahein — OTP, bank details ya password kabhi share mat karo.';
 
   console.log(`[Step 4] keyword:${keywordScore} tone:${toneScore} audio:${audioScore} → final:${finalScore} (${riskLevel.label})`);
 
