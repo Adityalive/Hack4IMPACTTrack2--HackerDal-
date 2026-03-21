@@ -4,9 +4,6 @@ class AudioService {
     this.analyser = null;
     this.microphone = null;
     this.mediaStream = null;
-    this.mediaRecorder = null;
-    this.recordedChunks = [];
-    this.recordedMimeType = "audio/webm";
     this.rafId = null;
     this.volumeCallback = null;
     this.samples = [];
@@ -32,8 +29,6 @@ class AudioService {
     this.volumeCallback = onVolumeChange;
     this.samples = [];
     this.startedAt = performance.now();
-    this.recordedChunks = [];
-    this.setupRecorder(stream);
 
     const dataArray = new Uint8Array(this.analyser.fftSize);
 
@@ -61,50 +56,7 @@ class AudioService {
     tick();
   }
 
-  setupRecorder(stream) {
-    if (typeof MediaRecorder === "undefined") {
-      this.mediaRecorder = null;
-      this.recordedMimeType = "audio/webm";
-      return;
-    }
-
-    const mimeTypes = [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "audio/mp4",
-    ];
-    const supportedMimeType = mimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
-
-    this.recordedMimeType = supportedMimeType || "audio/webm";
-    this.mediaRecorder = supportedMimeType
-      ? new MediaRecorder(stream, { mimeType: supportedMimeType })
-      : new MediaRecorder(stream);
-
-    this.mediaRecorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) {
-        this.recordedChunks.push(event.data);
-      }
-    };
-
-    this.mediaRecorder.start();
-  }
-
   stop() {
-    let audioBlob = null;
-
-    if (this.mediaRecorder) {
-      if (this.mediaRecorder.state !== "inactive") {
-        this.mediaRecorder.requestData();
-        this.mediaRecorder.stop();
-      }
-
-      if (this.recordedChunks.length) {
-        audioBlob = new Blob(this.recordedChunks, { type: this.recordedMimeType });
-      }
-
-      this.mediaRecorder = null;
-    }
-
     if (this.rafId) {
       window.cancelAnimationFrame(this.rafId);
       this.rafId = null;
@@ -130,12 +82,7 @@ class AudioService {
     const metrics = this.buildMetrics();
     this.samples = [];
     this.volumeCallback = null;
-    this.recordedChunks = [];
-    return {
-      metrics,
-      audioBlob,
-      mimeType: audioBlob?.type || this.recordedMimeType,
-    };
+    return metrics;
   }
 
   buildMetrics() {

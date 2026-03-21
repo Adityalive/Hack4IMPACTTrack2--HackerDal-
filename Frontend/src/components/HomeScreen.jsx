@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { lookupCallerNumber, reportCallerNumber } from '../api/numberService';
+// ─── HomeScreen.jsx ───────────────────────────────────────────────────────────
 
 const quickSteps = [
   {
@@ -71,7 +69,7 @@ function ScrollButton({ targetId, children }) {
   );
 }
 
-function CapabilityCard({ card, index }) {
+function CapabilityCard({ card }) {
   const toneClasses = {
     mint: 'border-emerald-300/10 bg-slate-800/80',
     rose: 'border-rose-300/15 bg-slate-800/80',
@@ -81,11 +79,7 @@ function CapabilityCard({ card, index }) {
   };
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+    <article
       className={`rounded-[26px] border p-6 shadow-[0_24px_60px_rgba(2,6,23,0.3)] ${toneClasses[card.tone]} ${card.size === 'wide' ? 'lg:col-span-2' : ''}`}
     >
       <div className="flex h-full flex-col justify-between gap-6">
@@ -116,186 +110,35 @@ function CapabilityCard({ card, index }) {
           </div>
         )}
       </div>
-    </motion.article>
-  );
-}
-
-function NumberToast({
-  mode,
-  phoneInput,
-  setPhoneInput,
-  loading,
-  result,
-  error,
-  onClose,
-  onCheck,
-  onReport,
-}) {
-  const title = mode === 'report' ? 'Report Scam Number' : 'Check Number';
-  const actionLabel = mode === 'report' ? 'Report Scam' : 'Check Number';
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0f172a] p-6 shadow-[0_30px_90px_rgba(2,6,23,0.5)]"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-2xl font-black text-slate-100">{title}</div>
-            <p className="mt-1 text-sm text-slate-400">Enter a 10-digit caller number to check or report it in the shared database.</p>
-          </div>
-          <button onClick={onClose} className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-400 transition hover:text-white">
-            Close
-          </button>
-        </div>
-
-        <div className="mt-6">
-          <label className="block">
-            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Caller Number</span>
-            <input
-              type="text"
-              value={phoneInput}
-              onChange={(event) => setPhoneInput(event.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="9876543210"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-emerald-300/40"
-            />
-          </label>
-        </div>
-
-        {(result || error) && (
-          <div className={`mt-5 rounded-[22px] border px-4 py-4 ${error ? 'border-rose-400/20 bg-rose-500/10 text-rose-200' : 'border-emerald-300/16 bg-emerald-500/10 text-emerald-100'}`}>
-            <div className="text-sm leading-7">
-              {error || result?.message}
-            </div>
-            {result && !error && (
-              <div className="mt-3 text-xs font-bold uppercase tracking-[0.2em]">
-                Total reports: {result.totalReports} | Analysis flags: {result.analysisCount} | Manual reports: {result.manualReportCount}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={mode === 'report' ? onReport : onCheck}
-            disabled={loading || phoneInput.length !== 10}
-            className="flex-1 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-slate-950 transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? 'Please wait...' : actionLabel}
-          </button>
-          {mode === 'report' && (
-            <button
-              onClick={onCheck}
-              disabled={loading || phoneInput.length !== 10}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Check First
-            </button>
-          )}
-        </div>
-      </motion.div>
-    </div>
+    </article>
   );
 }
 
 export default function HomeScreen({
   onStartRecording,
-  onShowDeepfake,
   onShowEducation,
   onShowMap,
   user,
   onLoginClick,
-  onLogout,
 }) {
-  const [toastMode, setToastMode] = useState(null);
-  const [phoneInput, setPhoneInput] = useState('');
-  const [toastResult, setToastResult] = useState(null);
-  const [toastError, setToastError] = useState('');
-  const [toastLoading, setToastLoading] = useState(false);
-
-  const openToast = (mode) => {
-    setToastMode(mode);
-    setPhoneInput('');
-    setToastResult(null);
-    setToastError('');
-    setToastLoading(false);
-  };
-
-  const closeToast = () => {
-    setToastMode(null);
-    setToastResult(null);
-    setToastError('');
-    setToastLoading(false);
-  };
-
-  const handleCheckNumber = async () => {
-    setToastLoading(true);
-    setToastError('');
-    try {
-      const data = await lookupCallerNumber(phoneInput);
-      setToastResult(data);
-    } catch (err) {
-      setToastError(err.message);
-      setToastResult(null);
-    } finally {
-      setToastLoading(false);
-    }
-  };
-
-  const handleReportNumber = async () => {
-    setToastLoading(true);
-    setToastError('');
-    try {
-      const data = await reportCallerNumber(phoneInput);
-      setToastResult(data);
-    } catch (err) {
-      setToastError(err.message);
-      setToastResult(null);
-    } finally {
-      setToastLoading(false);
-    }
-  };
-
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -15 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.18),_transparent_32%),linear-gradient(180deg,_#07101f_0%,_#081224_42%,_#050c19_100%)] text-white"
-    >
-      {toastMode && (
-        <NumberToast
-          mode={toastMode}
-          phoneInput={phoneInput}
-          setPhoneInput={setPhoneInput}
-          loading={toastLoading}
-          result={toastResult}
-          error={toastError}
-          onClose={closeToast}
-          onCheck={handleCheckNumber}
-          onReport={handleReportNumber}
-        />
-      )}
+    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.18),_transparent_32%),linear-gradient(180deg,_#07101f_0%,_#081224_42%,_#050c19_100%)] text-white">
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-        <header className="sticky top-0 z-20 mb-8 rounded-[22px] border border-white/8 bg-slate-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.35)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <header className="sticky top-0 z-20 mb-10 border border-white/6 bg-slate-950/75 backdrop-blur-xl rounded-[22px] px-4 py-4 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-2xl font-black tracking-tight text-rose-300">VoiceGuard</div>
                 <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">Real-Time Protection Engine</p>
               </div>
               {user ? (
-                <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 xl:hidden">
+                <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 lg:hidden">
                   {user.name}
                 </div>
               ) : (
                 <button
                   onClick={onLoginClick}
-                  className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white xl:hidden"
+                  className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white lg:hidden"
                 >
                   Login
                 </button>
@@ -310,42 +153,28 @@ export default function HomeScreen({
               <button onClick={onShowMap} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
                 Nearest Help
               </button>
-              <button onClick={onShowDeepfake} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
-                Deepfake Detector
-              </button>
-              <button onClick={() => openToast('check')} className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white">
-                Check No
-              </button>
             </nav>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
               {user ? (
-                <>
-                  <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200 xl:block">
-                    {user.name}
-                  </div>
-                  <button
-                    onClick={onLogout}
-                    className="rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
-                  >
-                    Logout
-                  </button>
-                </>
+                <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200 lg:block">
+                  {user.name}
+                </div>
               ) : (
                 <button
                   onClick={onLoginClick}
-                  className="hidden rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white xl:block"
+                  className="hidden rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white lg:block"
                 >
                   Login
                 </button>
               )}
 
-              <button
-                onClick={() => openToast('report')}
+              <a
+                href="tel:1930"
                 className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-rose-400"
               >
                 Report Scam
-              </button>
+              </a>
             </div>
           </div>
         </header>
@@ -373,18 +202,6 @@ export default function HomeScreen({
                 Protect Now (Record Call)
               </button>
               <ScrollButton targetId="how-it-works">How it works</ScrollButton>
-              <button
-                onClick={onShowMap}
-                className="rounded-2xl border border-emerald-300/18 bg-emerald-300/10 px-5 py-3 text-sm font-semibold text-emerald-100 transition hover:border-emerald-200/30 hover:bg-emerald-300/16"
-              >
-                Find Help Nearby
-              </button>
-              <button
-                onClick={onShowDeepfake}
-                className="rounded-2xl border border-cyan-300/18 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/30 hover:bg-cyan-300/16"
-              >
-                Deepfake Voice Check
-              </button>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3 text-xs uppercase tracking-[0.28em] text-slate-400">
@@ -401,8 +218,8 @@ export default function HomeScreen({
                 <div className="absolute right-6 top-5 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
                 <div className="absolute left-[-40px] top-20 h-72 w-72 rounded-full bg-slate-900/15 blur-3xl" />
 
-                <div className="mx-auto flex min-h-[360px] max-w-[320px] items-end justify-center sm:min-h-[420px]">
-                  <div className="relative h-[300px] w-[200px] sm:h-[360px] sm:w-[230px]">
+                <div className="mx-auto flex min-h-[460px] max-w-[320px] items-end justify-center">
+                  <div className="relative h-[380px] w-[240px]">
                     <div className="absolute bottom-0 left-1/2 h-[170px] w-[200px] -translate-x-1/2 rounded-t-[48px] bg-[linear-gradient(180deg,_#3a3a40_0%,_#1b2232_100%)]" />
                     <div className="absolute bottom-[132px] left-1/2 h-[118px] w-[124px] -translate-x-1/2 rounded-[36px] bg-[linear-gradient(180deg,_#f1ede4_0%,_#dad0c2_100%)]" />
                     <div className="absolute bottom-[218px] left-1/2 h-[84px] w-[84px] -translate-x-1/2 rounded-full bg-[linear-gradient(180deg,_#d2c9bc_0%,_#b4a596_100%)]" />
@@ -418,14 +235,9 @@ export default function HomeScreen({
                 </div>
 
                 <div className="absolute inset-x-4 bottom-4 rounded-[22px] border border-white/10 bg-slate-900/88 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.35)] backdrop-blur">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-300">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                      AI Scanning Active
-                    </div>
-                    <span className="rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[10px] text-slate-200">
-                      Avg scan: 15s
-                    </span>
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-300">
+                    <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                    AI Scanning Active
                   </div>
                   <div className="mt-4 flex h-10 items-end gap-1">
                     {[26, 52, 18, 64, 32, 72, 28, 54].map((height, index) => (
@@ -450,14 +262,10 @@ export default function HomeScreen({
             </p>
           </div>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {quickSteps.map((step, index) => (
-              <motion.article
+          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+            {quickSteps.map((step) => (
+              <article
                 key={step.number}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
                 className="relative overflow-hidden rounded-[28px] border border-white/8 bg-slate-900/80 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.28)]"
               >
                 <span className="absolute right-5 top-4 text-5xl font-black text-white/6">{step.number}</span>
@@ -466,7 +274,7 @@ export default function HomeScreen({
                 </div>
                 <h3 className="text-xl font-bold text-white">{step.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-300">{step.description}</p>
-              </motion.article>
+              </article>
             ))}
           </div>
         </section>
@@ -481,14 +289,14 @@ export default function HomeScreen({
             </div>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {capabilityCards.map((card, index) => (
-              <CapabilityCard key={card.title} card={card} index={index} />
+          <div className="mt-10 grid gap-5 lg:grid-cols-4">
+            {capabilityCards.map((card) => (
+              <CapabilityCard key={card.title} card={card} />
             ))}
           </div>
         </section>
 
-        <section className="grid gap-8 py-20 lg:grid-cols-[1fr_360px] lg:items-end">
+        <section className="grid gap-8 py-24 lg:grid-cols-[1fr_360px] lg:items-end">
           <div>
             <h2 className="text-4xl font-black tracking-tight text-slate-100">AI In Action</h2>
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-rose-300/15 bg-rose-300/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-rose-200">
@@ -501,7 +309,7 @@ export default function HomeScreen({
 
             <div className="mt-8 rounded-[28px] border border-rose-300/12 bg-slate-900/85 p-5 shadow-[0_20px_60px_rgba(2,6,23,0.26)]">
               <p className="rounded-[18px] border border-white/6 bg-slate-950/50 px-4 py-4 text-sm italic text-slate-200">
-                &quot;Aapka account block ho jayega, abhi ye OTP batayiye...&quot;
+                "Aapka account block ho jayega, abhi ye OTP batayiye..."
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">
                 <span>Transaction: Account Block Warning</span>
@@ -539,7 +347,7 @@ export default function HomeScreen({
                 onClick={onStartRecording}
                 className="mt-4 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
-                Start Scan
+                Cut Call Now
               </button>
             </div>
           </div>
@@ -581,7 +389,7 @@ export default function HomeScreen({
               <div className="mt-4 flex flex-col gap-3">
                 <button onClick={onShowEducation} className="text-left transition hover:text-white">Educational Module</button>
                 <button onClick={onShowMap} className="text-left transition hover:text-white">Help Center</button>
-                <button onClick={() => openToast('report')} className="text-left transition hover:text-white">Report a Scam</button>
+                <a href="tel:1930" className="transition hover:text-white">Report a Scam</a>
               </div>
             </div>
 
@@ -600,6 +408,6 @@ export default function HomeScreen({
           </p>
         </footer>
       </div>
-    </motion.div>
+    </div>
   );
 }

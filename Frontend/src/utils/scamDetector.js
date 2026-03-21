@@ -4,7 +4,7 @@
 // Output: { score, riskLevel, matchedKeywords, breakdown }
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { SCAM_KEYWORDS, MAX_KEYWORD_SCORE, CRITICAL_CATEGORIES } from '../data/scamKeywords.js';
+import { SCAM_KEYWORDS, MAX_KEYWORD_SCORE } from '../data/scamKeywords.js';
 
 // ── Risk level thresholds ──────────────────────────────────────────────────────
 export const RISK_LEVELS = {
@@ -101,30 +101,11 @@ export function analyzeCall(transcript, audioMetrics = null) {
   const { keywordScore, matchedKeywords } = analyzeKeywords(transcript);
   const { audioScore, audioFlags }        = analyzeAudio(audioMetrics);
 
-  // Weighted final score.
-  // When audio analysis is unavailable (audioScore = 0), use the keyword score
-  // directly so that strong keyword signals are not artificially halved.
-  const weightedScore = audioScore > 0
-    ? Math.round(keywordScore * 0.50 + audioScore * 0.50)
-    : Math.round(keywordScore);
-
-  // Never lower the score below what keywords alone indicate.
-  let score = Math.min(100, Math.max(weightedScore, Math.round(keywordScore)));
-
-  // If any critical-category keyword is matched (OTP, bank/financial details,
-  // money transfer), the call must be at least SUSPICIOUS — never "Safe".
-  // If TWO or more critical matches are found together (e.g. OTP + bank account
-  // details), force DANGER (70) — that combination is never legitimate.
-  const criticalMatches = matchedKeywords.filter(
-    k => CRITICAL_CATEGORIES.includes(k.category)
+  // Weighted final score
+  const score = Math.round(
+    keywordScore * 0.50 +
+    audioScore   * 0.50   // audio split: pitch 30% + pause 20% handled inside analyzeAudio
   );
-  const hasCriticalKeyword = criticalMatches.length > 0;
-  if (hasCriticalKeyword && score < 40) {
-    score = 40;
-  }
-  if (criticalMatches.length >= 2 && score < 70) {
-    score = 70;
-  }
 
   // Determine risk level
   let riskLevel = RISK_LEVELS.SAFE;

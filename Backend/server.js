@@ -1,18 +1,7 @@
-// server.js
-import dotenv    from 'dotenv';
-import app       from './src/app.js';
-import connectDB from './src/config/db.js';
+import app from "./src/app.js"
 
-dotenv.config();
+const PORT = process.env.PORT || 3000;
 
-const PORT = process.env.PORT || 5000;
-
-// Connect to MongoDB then start server
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n VoiceGuard API running on port ${PORT}`);
-    console.log(` Health: http://localhost:${PORT}/`);
-    console.log(` Analyze: POST http://localhost:${PORT}/api/analyze`);
-    console.log(` Auth:    POST http://localhost:${PORT}/api/auth/login\n`);
-  });
+app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
 });
