@@ -116,6 +116,17 @@ export const SCAM_KEYWORDS = [
   { phrase: 'password batao',       weight: 18 },
   { phrase: 'date of birth batao',  weight: 8  },
   { phrase: 'expiry date batao',    weight: 15 },
+  { phrase: 'bank details',         weight: 18 },
+  { phrase: 'banking details',      weight: 18 },
+  { phrase: 'account details',      weight: 18 },
+  { phrase: 'card details',         weight: 15 },
+  { phrase: 'financial details',    weight: 15 },
+  { phrase: 'bank account number',  weight: 18 },
+  { phrase: 'share your otp',       weight: 18 },
+  { phrase: 'tell me your otp',     weight: 18 },
+  { phrase: 'give me your otp',     weight: 18 },
+  { phrase: 'your pin',             weight: 15 },
+  { phrase: 'expiry date',          weight: 12 },
 
   // ==========================================
   // 8. Lottery, Prizes & Jobs
@@ -162,3 +173,18 @@ export const SCAM_KEYWORDS = [
 // Even with the expanded list, the max weight for a single phrase is 18.
 // So 18 + 18 + 18 is still 54.
 export const MAX_RAW_SCORE = 54;
+
+// Phrases that indicate explicit requests for sensitive personal/financial info or money transfer.
+// Even a single match must result in at least a SUSPICIOUS score (40) — these are never "Safe".
+export const CRITICAL_PHRASES = new Set([
+  'otp', 'one time password', 'otp batao', 'otp share karo', 'otp send karo',
+  'otp padh ke batao', 'share your otp', 'tell me your otp', 'give me your otp',
+  'pin number batao', 'atm pin', 'upi pin batao', 'cvv number', 'your pin',
+  'account number batao', 'card number batao', 'password batao',
+  'bank details', 'banking details', 'account details', 'card details',
+  'financial details', 'bank account number',
+  'credit card number', 'debit card number', 'credit card details',
+  'atm card details', '16 digit number',
+  'paise bhejo', 'paisa transfer karo', 'abhi transfer karo', 'upi pe bhejo',
+  'ओटीपी', 'ओटीपी बताओ', 'पैसे भेजो',
+]);

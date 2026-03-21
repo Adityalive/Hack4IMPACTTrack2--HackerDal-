@@ -4,7 +4,7 @@
 // Output: { score, riskLevel, matchedKeywords, breakdown }
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { SCAM_KEYWORDS, MAX_KEYWORD_SCORE } from '../data/scamKeywords.js';
+import { SCAM_KEYWORDS, MAX_KEYWORD_SCORE, CRITICAL_CATEGORIES } from '../data/scamKeywords.js';
 
 // ── Risk level thresholds ──────────────────────────────────────────────────────
 export const RISK_LEVELS = {
@@ -109,7 +109,17 @@ export function analyzeCall(transcript, audioMetrics = null) {
     : Math.round(keywordScore);
 
   // Never lower the score below what keywords alone indicate.
-  const score = Math.min(100, Math.max(weightedScore, Math.round(keywordScore)));
+  let score = Math.min(100, Math.max(weightedScore, Math.round(keywordScore)));
+
+  // If any critical-category keyword is matched (OTP, bank/financial details,
+  // money transfer), the call must be at least SUSPICIOUS — never "Safe".
+  // Even a single sensitive-information request is a red flag.
+  const hasCriticalKeyword = matchedKeywords.some(
+    k => CRITICAL_CATEGORIES.includes(k.category)
+  );
+  if (hasCriticalKeyword && score < 40) {
+    score = 40;
+  }
 
   // Determine risk level
   let riskLevel = RISK_LEVELS.SAFE;
