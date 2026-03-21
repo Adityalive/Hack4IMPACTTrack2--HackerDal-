@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { lookupCallerNumber, reportCallerNumber } from '../api/numberService';
 
 const quickSteps = [
@@ -70,7 +71,7 @@ function ScrollButton({ targetId, children }) {
   );
 }
 
-function CapabilityCard({ card }) {
+function CapabilityCard({ card, index }) {
   const toneClasses = {
     mint: 'border-emerald-300/10 bg-slate-800/80',
     rose: 'border-rose-300/15 bg-slate-800/80',
@@ -80,7 +81,11 @@ function CapabilityCard({ card }) {
   };
 
   return (
-    <article
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
       className={`rounded-[26px] border p-6 shadow-[0_24px_60px_rgba(2,6,23,0.3)] ${toneClasses[card.tone]} ${card.size === 'wide' ? 'lg:col-span-2' : ''}`}
     >
       <div className="flex h-full flex-col justify-between gap-6">
@@ -111,7 +116,7 @@ function CapabilityCard({ card }) {
           </div>
         )}
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -131,7 +136,12 @@ function NumberToast({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0f172a] p-6 shadow-[0_30px_90px_rgba(2,6,23,0.5)]">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0f172a] p-6 shadow-[0_30px_90px_rgba(2,6,23,0.5)]"
+      >
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-2xl font-black text-slate-100">{title}</div>
@@ -186,7 +196,7 @@ function NumberToast({
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -250,7 +260,13 @@ export default function HomeScreen({
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.18),_transparent_32%),linear-gradient(180deg,_#07101f_0%,_#081224_42%,_#050c19_100%)] text-white">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.18),_transparent_32%),linear-gradient(180deg,_#07101f_0%,_#081224_42%,_#050c19_100%)] text-white"
+    >
       {toastMode && (
         <NumberToast
           mode={toastMode}
@@ -435,9 +451,13 @@ export default function HomeScreen({
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {quickSteps.map((step) => (
-              <article
+            {quickSteps.map((step, index) => (
+              <motion.article
                 key={step.number}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
                 className="relative overflow-hidden rounded-[28px] border border-white/8 bg-slate-900/80 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.28)]"
               >
                 <span className="absolute right-5 top-4 text-5xl font-black text-white/6">{step.number}</span>
@@ -446,7 +466,7 @@ export default function HomeScreen({
                 </div>
                 <h3 className="text-xl font-bold text-white">{step.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-300">{step.description}</p>
-              </article>
+              </motion.article>
             ))}
           </div>
         </section>
@@ -462,8 +482,8 @@ export default function HomeScreen({
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {capabilityCards.map((card) => (
-              <CapabilityCard key={card.title} card={card} />
+            {capabilityCards.map((card, index) => (
+              <CapabilityCard key={card.title} card={card} index={index} />
             ))}
           </div>
         </section>
@@ -580,6 +600,6 @@ export default function HomeScreen({
           </p>
         </footer>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import HomeScreen      from './components/HomeScreen';
 import RecordingScreen from './components/RecordingScreen';
 import AnalysisScreen  from './components/AnalysisScreen';
@@ -32,17 +33,21 @@ export default function App() {
 
   return (
     <div className={`mx-auto min-h-screen font-sans ${isWideScreen ? 'max-w-none' : 'max-w-md'}`}>
-      {showLogin && (
-        <div className="fixed inset-0 z-50">
-          <LoginModal onSuccess={handleLoginSuccess} onClose={() => setShowLogin(false)} />
-        </div>
-      )}
-      {screen === SCREENS.HOME      && <HomeScreen user={user} onStartRecording={() => setScreen(SCREENS.RECORDING)} onShowDeepfake={() => setScreen(SCREENS.DEEPFAKE)} onLoginClick={() => setShowLogin(true)} onLogout={handleLogout} onShowEducation={() => setScreen(SCREENS.EDUCATION)} onShowMap={() => setScreen(SCREENS.MAP)} />}
-      {screen === SCREENS.RECORDING && <RecordingScreen onRecordingComplete={handleRecordingComplete} onCancel={() => setScreen(SCREENS.HOME)} />}
-      {screen === SCREENS.ANALYSIS  && callResult && <AnalysisScreen callResult={callResult} user={user} onGoHome={() => setScreen(SCREENS.HOME)} onShowMap={() => setScreen(SCREENS.MAP)} />}
-      {screen === SCREENS.DEEPFAKE  && <DeepfakeDetector onBack={() => setScreen(SCREENS.HOME)} />}
-      {screen === SCREENS.MAP       && <HelpMap onBack={() => setScreen(SCREENS.ANALYSIS)} />}
-      {screen === SCREENS.EDUCATION && <EducationPage onBack={() => setScreen(SCREENS.HOME)} />}
+      <AnimatePresence>
+        {showLogin && (
+          <div className="fixed inset-0 z-50">
+            <LoginModal onSuccess={handleLoginSuccess} onClose={() => setShowLogin(false)} />
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {screen === SCREENS.HOME      && <HomeScreen key="home" user={user} onStartRecording={() => setScreen(SCREENS.RECORDING)} onShowDeepfake={() => setScreen(SCREENS.DEEPFAKE)} onLoginClick={() => setShowLogin(true)} onLogout={handleLogout} onShowEducation={() => setScreen(SCREENS.EDUCATION)} onShowMap={() => setScreen(SCREENS.MAP)} />}
+        {screen === SCREENS.RECORDING && <RecordingScreen key="recording" onRecordingComplete={handleRecordingComplete} onCancel={() => setScreen(SCREENS.HOME)} />}
+        {screen === SCREENS.ANALYSIS  && callResult && <AnalysisScreen key="analysis" callResult={callResult} user={user} onGoHome={() => setScreen(SCREENS.HOME)} onShowMap={() => setScreen(SCREENS.MAP)} />}
+        {screen === SCREENS.DEEPFAKE  && <DeepfakeDetector key="deepfake" onBack={() => setScreen(SCREENS.HOME)} />}
+        {screen === SCREENS.MAP       && <HelpMap key="map" onBack={() => setScreen(SCREENS.ANALYSIS)} />}
+        {screen === SCREENS.EDUCATION && <EducationPage key="education" onBack={() => setScreen(SCREENS.HOME)} />}
+      </AnimatePresence>
     </div>
   );
 }

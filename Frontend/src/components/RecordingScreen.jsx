@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import speechService            from '../services/speechService';
 import audioService             from '../services/audioService';
 import { quickKeywordCheck }    from '../utils/scamDetector';
@@ -174,7 +175,12 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
 
   if (isAnalyzing) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-6 px-6">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-6 px-6"
+      >
         <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         <div className="text-center">
           <p className="text-white font-bold text-xl mb-2">Analyzing with AI...</p>
@@ -189,12 +195,18 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.08),_transparent_22%),linear-gradient(180deg,_#030712_0%,_#071120_46%,_#020816_100%)] text-white">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.08),_transparent_22%),linear-gradient(180deg,_#030712_0%,_#071120_46%,_#020816_100%)] text-white"
+    >
       <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
         <div className="overflow-hidden rounded-[30px] border border-white/8 bg-slate-950/80 shadow-[0_24px_70px_rgba(2,6,23,0.45)] backdrop-blur-xl">
           <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(15,23,42,0.7))] px-4 py-4 sm:px-6">
@@ -360,6 +372,6 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
