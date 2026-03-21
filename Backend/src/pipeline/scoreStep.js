@@ -9,25 +9,38 @@ export function scoreStep(state) {
   const keywordScore = state.keywordScore || 0;
   const toneScore    = state.toneScore    || 0;
   const audioScore   = state.audioScore   || 0;
+  // isScam flag from Gemini — if AI explicitly says it's a scam, enforce a minimum score
+  const isScam       = state.isScam === true;
 
-  let finalScore;
+  let weightedScore;
 
   if (toneScore > 0) {
     // Normal: keyword 50% + tone 30% + audio 20%
-    finalScore = Math.round(
+    weightedScore = Math.round(
       keywordScore * 0.50 +
       toneScore    * 0.30 +
       audioScore   * 0.20
     );
   } else if (audioScore > 0) {
     // No tone: keyword 70% + audio 30%
-    finalScore = Math.round(
+    weightedScore = Math.round(
       keywordScore * 0.70 +
       audioScore   * 0.30
     );
   } else {
-    // Only keywords — use directly (cap 85)
-    finalScore = Math.min(85, Math.round(keywordScore));
+    // Only keywords — use directly
+    weightedScore = Math.round(keywordScore);
+  }
+
+  // Never let tone/audio analysis drag the score below the keyword baseline.
+  // Keywords are deterministic — if they fire, the risk is real regardless of
+  // what the AI tone analysis returns.
+  let finalScore = Math.max(keywordScore, weightedScore);
+
+  // If Gemini explicitly flagged this call as a scam, ensure the score reaches
+  // at least the DANGER threshold (70) so the user always gets a strong warning.
+  if (isScam && finalScore < 70) {
+    finalScore = 70;
   }
 
   finalScore = Math.min(100, Math.max(0, finalScore));
